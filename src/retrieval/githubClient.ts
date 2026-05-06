@@ -1,5 +1,5 @@
 import axios from "axios";
-import { Candidate } from "../parser/schemas/types";
+import { Candidate } from "../schemas/types";
 
 /**
  * Searches GitHub for relevant AI repositories based on a task.
