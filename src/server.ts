@@ -1,19 +1,20 @@
 import express from "express";
 import cors from "cors";
-import { parseInput } from "./parser/inputParser";
+import { runPipeline } from "./index";
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 
-app.post("/evaluate", (req, res) => {
+// Made async since runPipeline now calls APIs
+app.post("/evaluate", async (req, res) => {
   const { input } = req.body;
 
-  const result = parseInput(input);
+  const result = await runPipeline(input);
 
   res.json(result);
 });
 
-app.listen(8000, () => {
-  console.log("Server running on http://localhost:8000");
+app.listen(3000, () => {
+  console.log("Server running on http://localhost:3000");
 });
