@@ -1,15 +1,17 @@
 import { parseInput } from "./parser/inputParser";
-import { Candidate, ScoredCandidate, ParsedInput } from "./schemas/types";
+import { Candidate, ScoredCandidate, ParsedInput, PRISMReport } from "./schemas/types";
 import { fetchHFModels } from "./retrieval/huggingfaceClient";
 import { fetchGitHubRepos } from "./retrieval/githubClient";
 import { fetchArxivPapers } from "./retrieval/arxivClient";
 import { scoreAndRank } from "./scoring";
+import { buildReport } from "./report/reportBuilder";
 
 // Pipeline entry point — runs parse → fetch → score → return ranked results
 export async function runPipeline(rawInput: string): Promise<{
   parsed: ParsedInput;
   scored: ScoredCandidate[];
   allCandidates: Candidate[];
+  report: PRISMReport;
 }> {
   // Step 1: Parse user input
   const parsed = parseInput(rawInput);
@@ -29,12 +31,14 @@ export async function runPipeline(rawInput: string): Promise<{
   const scored = scoreAndRank(allCandidates, parsed);
   console.log(`🏆 Scored & ranked: ${scored.length} viable candidates (${allCandidates.length - scored.length} rejected)`);
 
-  // Step 4: Build report (P4 — TODO: reportBuilder will wrap this into PRISMReport)
+  // Step 4: Build report (P4)
+  const report = buildReport(parsed, scored);
 
   return {
     parsed,
     scored,
     allCandidates,
+    report,
   };
 }
 
