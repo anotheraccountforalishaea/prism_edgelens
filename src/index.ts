@@ -1,44 +1,40 @@
-import { parseInput } from "./parser/inputParser";
-import { Candidate, ScoredCandidate, ParsedInput, PRISMReport } from "./schemas/types";
-import { fetchHFModels } from "./retrieval/huggingfaceClient";
-import { fetchGitHubRepos } from "./retrieval/githubClient";
-import { fetchArxivPapers } from "./retrieval/arxivClient";
-import { scoreAndRank } from "./scoring";
-import { buildReport } from "./report/reportBuilder";
+import { OpenClaw } from "./orchestration/openclaw";
+import { registerPrismSteps } from "./orchestration/prismSteps";
+import { ScoredCandidate, ParsedInput, PRISMReport, Candidate } from "./schemas/types";
 
-// Pipeline entry point — runs parse → fetch → score → return ranked results
+// Initialize OpenClaw steps
+registerPrismSteps();
+
+/**
+ * PRISM Pipeline Entry Point
+ * Now powered by OpenClaw orchestration for modular, agentic workflow.
+ */
 export async function runPipeline(rawInput: string): Promise<{
   parsed: ParsedInput;
   scored: ScoredCandidate[];
   allCandidates: Candidate[];
   report: PRISMReport;
 }> {
-  // Step 1: Parse user input
-  const parsed = parseInput(rawInput);
-  console.log(`📝 Parsed input: task="${parsed.task}", device="${parsed.device}", memory=${parsed.memoryMB}MB`);
+  const prismAgent = new OpenClaw()
+    .step("parse_input")
+    .step("retrieve_candidates")
+    .step("expand_search_context")
+    .step("score_candidates")
+    .step("analyze_trends")
+    .step("check_compatibility")
+    .step("build_report");
 
-  // Step 2: Fetch from all 3 sources in parallel (P2's code)
-  const [hfModels, ghRepos, arxivPapers] = await Promise.all([
-    fetchHFModels(parsed.task),
-    fetchGitHubRepos(parsed.task),
-    fetchArxivPapers(parsed.task),
-  ]);
+  const state = await prismAgent.run(rawInput);
 
-  const allCandidates: Candidate[] = [...hfModels, ...ghRepos, ...arxivPapers];
-  console.log(`📦 Total candidates fetched: ${allCandidates.length} (HF: ${hfModels.length}, GH: ${ghRepos.length}, ArXiv: ${arxivPapers.length})`);
-
-  // Step 3: Score and rank (P3's code)
-  const scored = scoreAndRank(allCandidates, parsed);
-  console.log(`🏆 Scored & ranked: ${scored.length} viable candidates (${allCandidates.length - scored.length} rejected)`);
-
-  // Step 4: Build report (P4)
-  const report = buildReport(parsed, scored);
+  if (!state.parsedInput || !state.scoredCandidates || !state.report) {
+    throw new Error("Pipeline failed to complete all critical steps.");
+  }
 
   return {
-    parsed,
-    scored,
-    allCandidates,
-    report,
+    parsed: state.parsedInput,
+    scored: state.scoredCandidates,
+    allCandidates: state.mergedCandidates || [],
+    report: state.report,
   };
 }
 
@@ -48,10 +44,10 @@ if (require.main === module) {
   console.log("🔍 Input:", input);
   console.log("---");
   runPipeline(input).then((result) => {
-    console.log("\n=== PIPELINE RESULTS ===");
+    console.log("\n=== PIPELINE RESULTS (OpenClaw Powered) ===");
     console.log(`Task: ${result.parsed.task}`);
     console.log(`Device: ${result.parsed.device}`);
-    console.log(`Candidates fetched: ${result.allCandidates.length}`);
+    console.log(`Candidates fetched (including expansion): ${result.allCandidates.length}`);
     console.log(`Viable (scored): ${result.scored.length}`);
     console.log("\n--- Top 5 Results ---");
     result.scored.slice(0, 5).forEach((c, i) => {
@@ -61,4 +57,4 @@ if (require.main === module) {
       console.log(`    URL: ${c.url}`);
     });
   });
-}
+}

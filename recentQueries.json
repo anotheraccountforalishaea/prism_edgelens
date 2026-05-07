@@ -1,0 +1,23 @@
+[
+  {
+    "timestamp": "2026-05-07T11:44:50.458Z",
+    "input": "I am building an edge AI healthcare assistant for low-power Android devices that can perform real-time medical image classification and lightweight multimodal reasoning offline.\n\nThe system should:\n\n- run on devices with maximum 1GB RAM\n- maintain inference latency below 120ms\n- support offline inference with no cloud dependency\n- prioritize quantized or pruned models\n- support TensorFlow Lite, ONNX, GGUF, or llama.cpp compatibility\n- work efficiently on ARM/mobile chipsets\n- support future deployment on Raspberry Pi and Jetson Nano\n\nI need:\n\n- lightweight vision-language models\n- medical image classification models\n- edge-compatible LLMs\n- repositories with active maintenance and recent commits\n- recent research papers related to TinyML, edge inference, quantization, and healthcare AI\n\nPrioritize:\n\n- HuggingFace models with high downloads and recent activity\n- GitHub repositories with strong community adoption\n- models optimized for mobile or embedded deployment\n- trending edge AI research\n\nAvoid:\n\n- cloud-only models\n- models requiring GPU servers\n- very large parameter models (>7B unless quantized)\n- inactive or outdated repositories\n\nAlso provide:\n\n- deployment feasibility analysis\n- compatibility score\n- trend analysis\n- optimization suggestions for low-latency edge deployment\n- reasoning for why each recommendation fits my constraints",
+    "task": "image-classification",
+    "candidateCount": 35,
+    "topResult": "apple/mobilevit-small"
+  },
+  {
+    "timestamp": "2026-05-07T11:44:02.543Z",
+    "input": "ai face detection huggingface\n",
+    "task": "general-ai",
+    "candidateCount": 15,
+    "topResult": "VainF/Awesome-Anything"
+  },
+  {
+    "timestamp": "2026-05-07T11:43:17.150Z",
+    "input": "ai face detection\n",
+    "task": "general-ai",
+    "candidateCount": 15,
+    "topResult": "VainF/Awesome-Anything"
+  }
+]
