@@ -4,7 +4,8 @@
   "description": "PRISM AI project analyzer",
   "main": "index.js",
   "scripts": {
-    "start": "ts-node src/index.ts"
+    "start": "ts-node src/index.ts",
+    "server": "ts-node src/server.ts"
   },
   "keywords": [],
   "author": "",
