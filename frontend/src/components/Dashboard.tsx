@@ -65,7 +65,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ candidates }) => {
           WebkitTextFillColor: 'transparent',
           display: 'inline-block'
         }}>
-          PRISM Results
+          EDGE_LENS Results
         </h1>
         
         <div style={{ 

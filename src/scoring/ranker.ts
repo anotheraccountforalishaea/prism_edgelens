@@ -1,9 +1,10 @@
-import { Candidate, ParsedInput, ScoredCandidate } from "../schemas/types";
+import { Candidate, ParsedInput, ScoredCandidate, CompatibilityLevel } from "../schemas/types";
 import { matchScore } from "./matchScorer";
 import { feasibilityScore } from "./feasibilityScorer";
 import { confidenceScore } from "./confidenceScorer";
 import { analyzeTrend } from "./trendAnalyzer";
-import { checkCompatibility } from "./compatibilityChecker";
+import { passesHardConstraints } from "./hardConstraints";
+import { computeSoftPenalties } from "./softConstraints";
 
 function findDuplicateNames(candidates: Candidate[]): Set<string> {
   const nameCounts = new Map<string, number>();
@@ -16,43 +17,61 @@ function findDuplicateNames(candidates: Candidate[]): Set<string> {
 
 export function rankCandidates(
   candidates: Candidate[],
-  input: ParsedInput
+  parsed: ParsedInput
 ): ScoredCandidate[] {
   if (candidates.length === 0) return [];
 
   const multiSourceNames = findDuplicateNames(candidates);
+  const topResults: ScoredCandidate[] = [];
 
-  const scored: ScoredCandidate[] = candidates.map(c => {
-    const appearsInMultipleSources = multiSourceNames.has(c.name.toLowerCase());
-    const m = matchScore(c, input);
-    const f = feasibilityScore(c, input);
-    const conf = confidenceScore(c, appearsInMultipleSources);
+  for (const candidate of candidates) {
+    // ── STEP 1: Hard check — remove if fails ─────────────
+    const hardCheck = passesHardConstraints(candidate, parsed);
+    if (!hardCheck.passes) {
+      continue; // This candidate is gone (we don't have rejectedResults array returned here based on current API, just filtering them out for now)
+    }
 
-    const sc: ScoredCandidate = {
-      ...c,
-      matchScore: m,
-      feasibilityScore: f,
-      confidenceScore: conf,
-      trendDirection: "stable", // placeholder — set below after full batch is scored
-      compatibility: "compatible", // placeholder
-    };
+    const appearsInMultipleSources = multiSourceNames.has(candidate.name.toLowerCase());
 
-    return sc;
-  });
+    // ── STEP 2: Base scores ──────────────────────────────
+    const baseMatch = matchScore(candidate, parsed);
+    const baseFeasibility = feasibilityScore(candidate, parsed);
+    const baseConfidence = confidenceScore(candidate, appearsInMultipleSources);
+    const trendDirection = analyzeTrend(candidate, candidates);
 
-  // Trend analysis needs the full batch for relative percentile calculation
-  for (const sc of scored) {
-    sc.trendDirection = analyzeTrend(sc, scored);
-    sc.compatibility = checkCompatibility(sc, input);
+    // ── STEP 3: Soft penalties — reduce scores ───────────
+    const penalties = computeSoftPenalties(candidate, parsed);
+
+    const finalMatch = Math.max(0, baseMatch - penalties.matchPenalty);
+    const finalFeasibility = Math.max(0, baseFeasibility - penalties.feasibilityPenalty);
+    const finalConfidence = Math.max(0, baseConfidence - penalties.confidencePenalty);
+
+    // ── STEP 4: Combined score ───────────────────────────
+    const combinedScore = Math.round(
+      finalMatch * 0.40 +
+      finalFeasibility * 0.40 +
+      finalConfidence * 0.20
+    );
+
+    // ── STEP 5: Compatibility level from final feasibility
+    const compatibility: CompatibilityLevel =
+      finalFeasibility >= 70 ? "compatible" :
+      finalFeasibility >= 40 ? "partial" : "incompatible";
+
+    // ── STEP 6: Push to results with full check details ──
+    topResults.push({
+      ...candidate,
+      matchScore: finalMatch,
+      feasibilityScore: finalFeasibility,
+      confidenceScore: finalConfidence,
+      combinedScore,
+      trendDirection,
+      compatibility,
+      passedChecks: penalties.passedSoftChecks,
+      failedChecks: penalties.failedSoftChecks,
+    });
   }
 
-  // Filter hard fails (memory exceeded → feasibility = 0)
-  const viable = scored.filter(c => c.feasibilityScore > 0);
-
-  // Weighted sort: feasibility-heavy since memory/latency constraints are hard requirements
-  return viable.sort((a, b) => {
-    const scoreOf = (x: ScoredCandidate) =>
-      x.matchScore * 0.35 + x.feasibilityScore * 0.45 + x.confidenceScore * 0.20;
-    return scoreOf(b) - scoreOf(a);
-  });
+  topResults.sort((a, b) => (b.combinedScore || 0) - (a.combinedScore || 0));
+  return topResults;
 }

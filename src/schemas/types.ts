@@ -1,10 +1,19 @@
 export interface ParsedInput {
   task: string;
   device: string;
+  rawText: string;
   memoryMB: number;
   latencyMs: number;
   offline: boolean;
-  rawText: string;
+  deployEnv?: string[] | undefined;
+  privacyRequired?: boolean | undefined;
+  framework?: string[] | undefined;
+  languagePreference?: string | undefined;
+  dataType?: string[] | undefined;
+  license?: "open-source" | "commercial" | "research-only" | "any" | undefined;
+  budgetConstrained?: boolean | undefined;
+  fpsRequired?: number | undefined;
+  accuracyMin?: number | undefined;
 }
 
 export type SourceType = "huggingface" | "github" | "arxiv";
@@ -28,8 +37,11 @@ export interface ScoredCandidate extends Candidate {
   matchScore: number;
   feasibilityScore: number;
   confidenceScore: number;
+  combinedScore?: number;
   trendDirection: TrendDirection;
   compatibility: CompatibilityLevel;
+  passedChecks?: string[];
+  failedChecks?: string[];
   explanation?: string | undefined;         // filled in by Ollama on demand
 }
 

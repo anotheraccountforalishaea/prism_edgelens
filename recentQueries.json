@@ -1,5 +1,82 @@
 [
   {
+    "timestamp": "2026-05-07T13:21:07.179Z",
+    "input": "\"I'm building an iOS app. I need an open source object detection model that runs in swift or coreml. It has to hit real-time video speeds (30fps) and use less than 200MB of RAM since it's on-device.",
+    "task": "object-detection",
+    "candidateCount": 55,
+    "topResult": "TahaDouaji/detr-doc-table-detection"
+  },
+  {
+    "timestamp": "2026-05-07T13:18:08.140Z",
+    "input": "Find me a text classification model for a cloud server. It needs to be commercial use approved, run in python, and handle sensitive HIPAA data with at least 95% accuracy\n",
+    "task": "text-classification",
+    "candidateCount": 55,
+    "topResult": "BAAI/bge-reranker-base"
+  },
+  {
+    "timestamp": "2026-05-07T13:07:24.209Z",
+    "input": "I'm building an iOS app. I need an open source object detection model that runs in swift or coreml. It has to hit real-time video speeds (30fps) and use less than 200MB of RAM since it's on-device.",
+    "task": "object-detection",
+    "candidateCount": 55,
+    "topResult": "TahaDouaji/detr-doc-table-detection"
+  },
+  {
+    "timestamp": "2026-05-07T13:06:18.596Z",
+    "input": "\n\"Find me a text classification model for a cloud server. It needs to be commercial use approved, run in python, and handle sensitive HIPAA data with at least 95% accuracy",
+    "task": "text-classification",
+    "candidateCount": 55,
+    "topResult": "BAAI/bge-reranker-base"
+  },
+  {
+    "timestamp": "2026-05-07T13:03:48.078Z",
+    "input": "AI face detection on my mobile",
+    "task": "general-ai",
+    "candidateCount": 69,
+    "topResult": "continuum-ai/qwen2.5-1.5b-general-forged"
+  },
+  {
+    "timestamp": "2026-05-07T13:00:35.411Z",
+    "input": "I'm building an iOS app. I need an open source object detection model that runs in swift or coreml. It has to hit real-time video speeds (30fps) and use less than 200MB of RAM since it's on-device.\" What this tests: Detects iOS (mobile), forces open source license, requires swift or coreml, calculates size vs 30fps feasibility, and sets a strict 200MB hard memory limit.\n",
+    "task": "object-detection",
+    "candidateCount": 55,
+    "topResult": "TahaDouaji/detr-doc-table-detection"
+  },
+  {
+    "timestamp": "2026-05-07T13:00:00.643Z",
+    "input": "I need a summarization AI that runs purely in the browser using javascript or onnx. Must be free with no budget and work offline.\" What this tests: Maps device to browser, sets javascript/onnx framework constraints, enforces free/no budget cost, and triggers the offline hard constraint (deleting any model requiring an API\n",
+    "task": "summarization",
+    "candidateCount": 55,
+    "topResult": "Xenova/distilbart-cnn-6-6"
+  },
+  {
+    "timestamp": "2026-05-07T12:57:40.164Z",
+    "input": "Find me a text classification model for a cloud server. It needs to be commercial use approved, run in python, and handle sensitive HIPAA data with at least 95% accuracy.\" What this tests: Maps cloud deployment, extracts commercial license constraint, enforces HIPAA (privacy constraint), checks for python framework support, and looks for 95% accuracy validation.",
+    "task": "text-classification",
+    "candidateCount": 55,
+    "topResult": "BAAI/bge-reranker-base"
+  },
+  {
+    "timestamp": "2026-05-07T12:06:30.232Z",
+    "input": "\"I need a text generation AI model to run locally on a desktop PC",
+    "task": "nlp",
+    "candidateCount": 55,
+    "topResult": "explosion/spaCy"
+  },
+  {
+    "timestamp": "2026-05-07T11:58:28.893Z",
+    "input": "\"I need an AI for video processing on a desktop.\"",
+    "task": "video-processing",
+    "candidateCount": 55,
+    "topResult": "memvid/memvid"
+  },
+  {
+    "timestamp": "2026-05-07T11:55:28.056Z",
+    "input": "I want to do speech recognition on mobile, it needs to work offline and has a strict limit of 500MB RAM",
+    "task": "speech-recognition",
+    "candidateCount": 72,
+    "topResult": "jakeBland/wav2vec-vm-finetune"
+  },
+  {
     "timestamp": "2026-05-07T11:44:50.458Z",
     "input": "I am building an edge AI healthcare assistant for low-power Android devices that can perform real-time medical image classification and lightweight multimodal reasoning offline.\n\nThe system should:\n\n- run on devices with maximum 1GB RAM\n- maintain inference latency below 120ms\n- support offline inference with no cloud dependency\n- prioritize quantized or pruned models\n- support TensorFlow Lite, ONNX, GGUF, or llama.cpp compatibility\n- work efficiently on ARM/mobile chipsets\n- support future deployment on Raspberry Pi and Jetson Nano\n\nI need:\n\n- lightweight vision-language models\n- medical image classification models\n- edge-compatible LLMs\n- repositories with active maintenance and recent commits\n- recent research papers related to TinyML, edge inference, quantization, and healthcare AI\n\nPrioritize:\n\n- HuggingFace models with high downloads and recent activity\n- GitHub repositories with strong community adoption\n- models optimized for mobile or embedded deployment\n- trending edge AI research\n\nAvoid:\n\n- cloud-only models\n- models requiring GPU servers\n- very large parameter models (>7B unless quantized)\n- inactive or outdated repositories\n\nAlso provide:\n\n- deployment feasibility analysis\n- compatibility score\n- trend analysis\n- optimization suggestions for low-latency edge deployment\n- reasoning for why each recommendation fits my constraints",
     "task": "image-classification",

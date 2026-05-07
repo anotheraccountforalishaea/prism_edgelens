@@ -76,7 +76,7 @@ export const InputForm: React.FC<InputFormProps> = ({ onSubmit, isLoading }) => 
           onMouseDown={(e) => !isLoading && (e.currentTarget.style.transform = 'scale(0.98)')}
           onMouseUp={(e) => !isLoading && (e.currentTarget.style.transform = 'scale(1)')}
         >
-          {isLoading ? 'Analyzing Project...' : 'Generate PRISM Report'}
+          {isLoading ? 'Analyzing Project...' : 'Generate EDGE_LENS Report'}
         </button>
       </form>
     </div>

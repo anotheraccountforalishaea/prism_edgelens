@@ -30,8 +30,6 @@ app.post("/evaluate", async (req, res) => {
     lastParsedInput = parsed;
 
     res.json(report);
-
-    res.json(report);
   } catch (error: any) {
     console.error("Pipeline error:", error);
     res.status(500).json({ error: error.message });

@@ -46,7 +46,7 @@ function App() {
               WebkitTextFillColor: "transparent",
               letterSpacing: "-0.05em"
             }}>
-              PRISM
+              EDGE_LENS
             </h1>
             <p style={{ color: "#9ca3af", fontSize: "1.25rem", maxWidth: "600px", margin: "0 auto" }}>
               The Precision Retrieval and Intelligent Scoring Matrix. 
@@ -88,7 +88,7 @@ function App() {
               WebkitBackgroundClip: "text",
               WebkitTextFillColor: "transparent"
             }}>
-              PRISM
+              EDGE_LENS
             </h2>
             <button 
               onClick={handleReset}

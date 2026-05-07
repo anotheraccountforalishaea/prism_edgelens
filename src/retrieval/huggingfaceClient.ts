@@ -14,8 +14,8 @@ export async function fetchHFModels(task: string): Promise<Candidate[]> {
     // HuggingFace needs hyphenated task names: "object detection" → "object-detection"
     const pipelineTag = task.replace(/\s+/g, "-").toLowerCase();
 
-    // Try pipeline_tag first, fall back to keyword search if it fails
-    let data: any[];
+    // Try pipeline_tag first
+    let data: any[] = [];
     try {
       const response = await axios.get(url, {
         params: {
@@ -29,15 +29,23 @@ export async function fetchHFModels(task: string): Promise<Candidate[]> {
           : {},
       });
       data = response.data;
-    } catch {
-      // Fallback: search by keyword instead of pipeline_tag
-      const response = await axios.get(url, {
-        params: { search: task, sort: "downloads", direction: -1, limit: 20 },
-        headers: process.env.HF_TOKEN
-          ? { Authorization: `Bearer ${process.env.HF_TOKEN}` }
-          : {},
-      });
-      data = response.data;
+    } catch (e) {
+      console.log(`Pipeline tag search failed, trying keyword search...`);
+    }
+
+    // Fallback: search by keyword instead of pipeline_tag if we got 0 results
+    if (!data || data.length === 0) {
+      try {
+        const response = await axios.get(url, {
+          params: { search: task, sort: "downloads", direction: -1, limit: 20 },
+          headers: process.env.HF_TOKEN
+            ? { Authorization: `Bearer ${process.env.HF_TOKEN}` }
+            : {},
+        });
+        data = response.data;
+      } catch (e) {
+        console.log(`Keyword search also failed.`);
+      }
     }
 
     // Filter out models with very few downloads (noise)

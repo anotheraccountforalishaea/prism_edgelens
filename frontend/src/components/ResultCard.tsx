@@ -46,7 +46,21 @@ export const ResultCard: React.FC<ResultCardProps> = ({ candidate }) => {
         <ScoreBar label="Confidence" score={candidate.confidenceScore} />
       </div>
 
-      <div style={{ display: 'flex', alignItems: 'center' }}>
+      <details style={{ fontSize: '0.85rem', marginTop: '8px' }}>
+        <summary style={{ cursor: 'pointer', color: '#9ca3af', userSelect: 'none', fontWeight: 500 }}>
+          Constraint Details
+        </summary>
+        <ul style={{ margin: '8px 0 0 0', paddingLeft: '20px', listStyleType: 'none', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+          {candidate.passedChecks?.map((p, i) => (
+            <li key={`pass-${i}`} style={{ color: '#4ade80' }}>{p}</li>
+          ))}
+          {candidate.failedChecks?.map((f, i) => (
+            <li key={`fail-${i}`} style={{ color: '#fbbf24' }}>{f}</li>
+          ))}
+        </ul>
+      </details>
+
+      <div style={{ display: 'flex', alignItems: 'center', marginTop: '8px' }}>
         <ExternalLink url={candidate.url} source={candidate.source} />
         <ExplainPopover candidateId={candidate.id} />
       </div>
