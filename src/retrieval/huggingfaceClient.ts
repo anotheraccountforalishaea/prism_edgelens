@@ -1,5 +1,5 @@
 import axios from "axios";
-import { Candidate } from "../parser/schemas/types";
+import { Candidate } from "../schemas/types";
 
 /**
  * Fetches trending AI models from HuggingFace based on a task.
@@ -18,7 +18,12 @@ export async function fetchHFModels(task: string): Promise<Candidate[]> {
     let data: any[];
     try {
       const response = await axios.get(url, {
-        params: { pipeline_tag: pipelineTag, sort: "trending", limit: 20 },
+        params: {
+          pipeline_tag: pipelineTag,
+          sort: "downloads",       // sort by downloads = actually popular models
+          direction: -1,           // descending order (most downloads first)
+          limit: 20,
+        },
         headers: process.env.HF_TOKEN
           ? { Authorization: `Bearer ${process.env.HF_TOKEN}` }
           : {},
@@ -27,7 +32,7 @@ export async function fetchHFModels(task: string): Promise<Candidate[]> {
     } catch {
       // Fallback: search by keyword instead of pipeline_tag
       const response = await axios.get(url, {
-        params: { search: task, sort: "downloads", limit: 20 },
+        params: { search: task, sort: "downloads", direction: -1, limit: 20 },
         headers: process.env.HF_TOKEN
           ? { Authorization: `Bearer ${process.env.HF_TOKEN}` }
           : {},
@@ -35,7 +40,10 @@ export async function fetchHFModels(task: string): Promise<Candidate[]> {
       data = response.data;
     }
 
-    const models: Candidate[] = data.map((model: any) => ({
+    // Filter out models with very few downloads (noise)
+    const filtered = data.filter((m: any) => (m.downloads || 0) >= 100);
+
+    const models: Candidate[] = filtered.map((model: any) => ({
       id: model.modelId || model.id,
       name: model.modelId || model.id,
       source: "huggingface" as const,
@@ -52,7 +60,7 @@ export async function fetchHFModels(task: string): Promise<Candidate[]> {
       recentActivity: model.downloads || 0,
     }));
 
-    console.log(`✅ HuggingFace: Fetched ${models.length} models for task "${task}"`);
+    console.log(`✅ HuggingFace: Fetched ${models.length} models for task "${task}" (all 100+ ⬇)`);
     return models;
   } catch (error: any) {
     console.error(`❌ HuggingFace fetch failed: ${error.message}`);

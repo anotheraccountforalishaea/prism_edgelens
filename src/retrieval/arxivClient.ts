@@ -1,5 +1,5 @@
 import axios from "axios";
-import { Candidate } from "../parser/schemas/types";
+import { Candidate } from "../schemas/types";
 
 /**
  * Fetches recent research papers from ArXiv based on a task.

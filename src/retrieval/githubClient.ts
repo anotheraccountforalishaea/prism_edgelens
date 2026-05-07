@@ -1,5 +1,5 @@
 import axios from "axios";
-import { Candidate } from "../parser/schemas/types";
+import { Candidate } from "../schemas/types";
 
 /**
  * Searches GitHub for relevant AI repositories based on a task.
@@ -9,7 +9,9 @@ import { Candidate } from "../parser/schemas/types";
  */
 export async function fetchGitHubRepos(task: string): Promise<Candidate[]> {
   try {
-    const searchQuery = `${task} AI edge`;
+    // Better search: use the task directly + require minimum stars
+    // "stars:>50" ensures we only get repos with real traction
+    const searchQuery = `${task} stars:>50`;
     const url = "https://api.github.com/search/repositories";
 
     const response = await axios.get(url, {
@@ -17,7 +19,7 @@ export async function fetchGitHubRepos(task: string): Promise<Candidate[]> {
         q: searchQuery,
         sort: "stars",
         order: "desc",
-        per_page: 10,
+        per_page: 15,
       },
       headers: {
         Accept: "application/vnd.github.v3+json",
@@ -27,25 +29,27 @@ export async function fetchGitHubRepos(task: string): Promise<Candidate[]> {
       },
     });
 
-    const repos: Candidate[] = response.data.items.map((repo: any) => {
-      const pushedAt = new Date(repo.pushed_at).getTime();
-      const now = Date.now();
-      const daysSincePush = (now - pushedAt) / (1000 * 60 * 60 * 24);
-      const recentActivity = Math.max(0, Math.round(100 - daysSincePush));
+    const repos: Candidate[] = response.data.items
+      .filter((repo: any) => repo.stargazers_count >= 50) // double-check minimum stars
+      .map((repo: any) => {
+        const pushedAt = new Date(repo.pushed_at).getTime();
+        const now = Date.now();
+        const daysSincePush = (now - pushedAt) / (1000 * 60 * 60 * 24);
+        const recentActivity = Math.max(0, Math.round(100 - daysSincePush));
 
-      return {
-        id: repo.full_name,
-        name: repo.full_name,
-        source: "github" as const,
-        url: repo.html_url,
-        description: repo.description || "No description available",
-        tags: repo.topics || [],
-        stars: repo.stargazers_count || 0,
-        recentActivity,
-      };
-    });
+        return {
+          id: repo.full_name,
+          name: repo.full_name,
+          source: "github" as const,
+          url: repo.html_url,
+          description: repo.description || "No description available",
+          tags: repo.topics || [],
+          stars: repo.stargazers_count || 0,
+          recentActivity,
+        };
+      });
 
-    console.log(`✅ GitHub: Fetched ${repos.length} repos for "${task}"`);
+    console.log(`✅ GitHub: Fetched ${repos.length} repos for "${task}" (all 50+ ⭐)`);
     return repos;
   } catch (error: any) {
     if (error.response?.status === 403) {
