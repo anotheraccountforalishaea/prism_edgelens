@@ -3,15 +3,21 @@ import { Candidate } from "../schemas/types";
 
 /**
  * Searches GitHub for relevant AI repositories based on a task.
+ * Uses OR logic to broaden discovery for complex multi-term technical queries.
  *
  * API: GET https://api.github.com/search/repositories
- * Free — no token needed (rate limit: 10 requests/min unauthenticated)
  */
 export async function fetchGitHubRepos(task: string): Promise<Candidate[]> {
   try {
-    // Better search: use the task directly + require minimum stars
-    // "stars:>50" ensures we only get repos with real traction
-    const searchQuery = `${task} stars:>50`;
+    const cleanTask = task.replace(/-/g, " ");
+    const terms = cleanTask.split(/\s+/).filter(t => t.length > 2);
+    
+    // Broaden search: use OR logic for multi-word tasks
+    // "agriculture disease" -> "agriculture OR disease"
+    const searchQuery = terms.length > 1 
+        ? `(${terms.join(" OR ")}) stars:>20`
+        : `${cleanTask} stars:>20`;
+        
     const url = "https://api.github.com/search/repositories";
 
     const response = await axios.get(url, {
@@ -19,7 +25,7 @@ export async function fetchGitHubRepos(task: string): Promise<Candidate[]> {
         q: searchQuery,
         sort: "stars",
         order: "desc",
-        per_page: 15,
+        per_page: 100,
       },
       headers: {
         Accept: "application/vnd.github.v3+json",
@@ -29,8 +35,7 @@ export async function fetchGitHubRepos(task: string): Promise<Candidate[]> {
       },
     });
 
-    const repos: Candidate[] = response.data.items
-      .filter((repo: any) => repo.stargazers_count >= 50) // double-check minimum stars
+    const repos: Candidate[] = (response.data.items || [])
       .map((repo: any) => {
         const pushedAt = new Date(repo.pushed_at).getTime();
         const now = Date.now();
@@ -49,11 +54,11 @@ export async function fetchGitHubRepos(task: string): Promise<Candidate[]> {
         };
       });
 
-    console.log(`✅ GitHub: Fetched ${repos.length} repos for "${task}" (all 50+ ⭐)`);
+    console.log(`✅ GitHub: Fetched ${repos.length} repos for "${searchQuery}"`);
     return repos;
   } catch (error: any) {
     if (error.response?.status === 403) {
-      console.warn("⚠️ GitHub API rate limited — try again in a minute");
+      console.warn("⚠️ GitHub API rate limited — using cached or empty results");
     } else {
       console.error(`❌ GitHub fetch failed: ${error.message}`);
     }

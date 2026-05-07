@@ -1,43 +1,33 @@
 import React from 'react';
-import type { SourceType } from '../types/types';
 
 interface ExternalLinkProps {
   url: string;
-  source: SourceType;
+  source: string;
 }
 
-export const ExternalLink: React.FC<ExternalLinkProps> = ({ url, source }) => {
-  let label = 'View';
-  
-  if (source === 'huggingface') {
-    label = 'View on HuggingFace';
-  } else if (source === 'github') {
-    label = 'View on GitHub';
-  } else if (source === 'arxiv') {
-    label = 'Read Paper';
-  }
-
+export const ExternalLink: React.FC<ExternalLinkProps> = ({ url }) => {
   return (
     <a 
       href={url} 
       target="_blank" 
       rel="noopener noreferrer"
       style={{
-        display: 'inline-block',
+        display: 'inline-flex',
+        alignItems: 'center',
         padding: '6px 12px',
-        backgroundColor: '#4f46e5',
-        color: 'white',
+        backgroundColor: '#334155',
+        color: '#ffffff',
+        borderRadius: '4px',
+        fontSize: '0.75rem',
+        fontWeight: '600',
         textDecoration: 'none',
-        borderRadius: '6px',
-        fontSize: '0.85rem',
-        fontWeight: 500,
-        transition: 'background-color 0.2s',
-        marginTop: '12px'
+        transition: 'background-color 0.2s ease',
+        border: '1px solid #475569'
       }}
-      onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#4338ca'}
-      onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#4f46e5'}
+      onMouseEnter={e => e.currentTarget.style.backgroundColor = '#475569'}
+      onMouseLeave={e => e.currentTarget.style.backgroundColor = '#334155'}
     >
-      {label}
+      Open Source
     </a>
   );
 };

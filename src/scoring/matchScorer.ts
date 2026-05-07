@@ -30,5 +30,9 @@ export function matchScore(c: Candidate, input: ParsedInput): number {
     }
   }
 
+  // Popularity Bonus: Surface famous ones first
+  if (c.stars && c.stars > 5000) score += 50;
+  else if (c.downloads && c.downloads > 100000) score += 50;
+
   return Math.min(score, 100);
 }

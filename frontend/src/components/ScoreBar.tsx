@@ -6,27 +6,27 @@ interface ScoreBarProps {
 }
 
 export const ScoreBar: React.FC<ScoreBarProps> = ({ label, score }) => {
-  const getColor = (s: number) => {
-    if (s >= 75) return '#10b981'; // Green
-    if (s >= 40) return '#f59e0b'; // Yellow
-    return '#ef4444'; // Red
+  // Use a subtle professional green/blue gradient based on score
+  const getBarColor = (s: number) => {
+    if (s >= 70) return '#10b981'; // Professional Emerald
+    if (s >= 40) return '#3b82f6'; // Professional Blue
+    return '#64748b'; // Professional Slate
   };
 
   return (
-    <div style={{ marginBottom: '8px' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', marginBottom: '4px', color: '#e5e7eb' }}>
+    <div style={{ width: '100%' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px', fontSize: '0.7rem', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.025em', color: '#94a3b8' }}>
         <span>{label}</span>
-        <span style={{ fontWeight: 'bold' }}>{score}/100</span>
+        <span>{score}%</span>
       </div>
-      <div style={{ width: '100%', backgroundColor: '#374151', borderRadius: '999px', height: '8px', overflow: 'hidden' }}>
-        <div
-          style={{
-            height: '100%',
-            width: `${score}%`,
-            backgroundColor: getColor(score),
-            transition: 'width 1s ease-in-out',
-            borderRadius: '999px',
-          }}
+      <div style={{ width: '100%', height: '4px', backgroundColor: '#334155', borderRadius: '2px', overflow: 'hidden' }}>
+        <div 
+          style={{ 
+            width: `${score}%`, 
+            height: '100%', 
+            backgroundColor: getBarColor(score),
+            transition: 'width 0.6s cubic-bezier(0.4, 0, 0.2, 1)'
+          }} 
         />
       </div>
     </div>

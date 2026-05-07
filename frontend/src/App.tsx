@@ -1,56 +1,110 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { InputForm } from "./components/InputForm";
 import { Dashboard } from "./components/Dashboard";
-import { evaluateProject } from "./api/apiClient";
+import { evaluateProject, getEnrichment } from "./api/apiClient";
 import type { ScoredCandidate, PRISMReport } from "./types/types";
 
 function App() {
   const [report, setReport] = useState<PRISMReport | null>(null);
   const [loading, setLoading] = useState(false);
+  const [papersLoading, setPapersLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [bookmarks, setBookmarks] = useState<ScoredCandidate[]>(() => {
+    const saved = localStorage.getItem("prism_bookmarks");
+    return saved ? JSON.parse(saved) : [];
+  });
+  const [showBookmarks, setShowBookmarks] = useState(false);
+
+  useEffect(() => {
+    localStorage.setItem("prism_bookmarks", JSON.stringify(bookmarks));
+  }, [bookmarks]);
+
+  const toggleBookmark = (candidate: ScoredCandidate) => {
+    setBookmarks(prev => {
+      const isBookmarked = prev.some(b => b.id === candidate.id);
+      if (isBookmarked) {
+        return prev.filter(b => b.id !== candidate.id);
+      } else {
+        return [...prev, candidate];
+      }
+    });
+  };
 
   const handleAnalyze = async (input: string) => {
     setLoading(true);
+    setPapersLoading(false);
     setError(null);
     try {
       const data = await evaluateProject(input);
       setReport(data);
+      
+      if (data.requestId) {
+        setPapersLoading(true);
+        pollEnrichment(data.requestId);
+      }
     } catch (err: any) {
-      setError(err.message || "Failed to analyze project");
+      setError(err.message || "An error occurred during analysis");
     } finally {
       setLoading(false);
     }
   };
 
+  const pollEnrichment = async (requestId: string) => {
+    let attempts = 0;
+    const maxAttempts = 20;
+    
+    const interval = setInterval(async () => {
+      try {
+        const data = await getEnrichment(requestId);
+        if (data.status === "completed") {
+          clearInterval(interval);
+          setPapersLoading(false);
+          if (data.arxivResults.length > 0) {
+            setReport(prev => {
+              if (!prev) return null;
+              const existingIds = new Set(prev.topResults.map(r => r.id));
+              const newResults = data.arxivResults.filter(r => !existingIds.has(r.id));
+              return {
+                ...prev,
+                topResults: [...prev.topResults, ...newResults]
+              };
+            });
+          }
+        }
+      } catch (err) {
+        console.error("Enrichment error:", err);
+      }
+
+      attempts++;
+      if (attempts >= maxAttempts) {
+        clearInterval(interval);
+        setPapersLoading(false);
+      }
+    }, 2000);
+  };
+
   const handleReset = () => {
     setReport(null);
     setError(null);
+    setShowBookmarks(false);
   };
 
   return (
-    <div style={{ 
-      backgroundColor: "#030712", 
-      minHeight: "100vh", 
-      color: "white",
-      fontFamily: "Inter, system-ui, -apple-system, sans-serif"
-    }}>
+    <div style={{ backgroundColor: "#0f172a", minHeight: "100vh", color: "#f1f5f9" }}>
       {!report ? (
-        <div style={{ padding: "80px 20px" }}>
-          <div style={{ textAlign: "center", marginBottom: "60px" }}>
+        <main style={{ maxWidth: "1000px", margin: "0 auto", padding: "100px 20px" }}>
+          <div style={{ textAlign: "center", marginBottom: "80px" }}>
             <h1 style={{ 
-              fontSize: "4rem", 
-              fontWeight: "800", 
-              marginBottom: "16px",
-              background: "linear-gradient(135deg, #818cf8, #c084fc, #fb7185)",
-              WebkitBackgroundClip: "text",
-              WebkitTextFillColor: "transparent",
-              letterSpacing: "-0.05em"
+              fontSize: "3.5rem", 
+              fontWeight: "700", 
+              marginBottom: "20px",
+              color: "#ffffff",
+              letterSpacing: "-0.04em"
             }}>
-              EDGE_LENS
+              PRISM <span style={{ color: "#3b82f6" }}>Intelligence</span>
             </h1>
-            <p style={{ color: "#9ca3af", fontSize: "1.25rem", maxWidth: "600px", margin: "0 auto" }}>
-              The Precision Retrieval and Intelligent Scoring Matrix. 
-              Find the perfect AI models, repos, and papers for your edge constraints.
+            <p style={{ color: "#94a3b8", fontSize: "1.125rem", maxWidth: "650px", margin: "0 auto", lineHeight: "1.6" }}>
+              Precision Retrieval and Intelligent Scoring Matrix. Analyze hardware-aligned AI candidates for autonomous coding workflows.
             </p>
           </div>
           
@@ -58,120 +112,146 @@ function App() {
           
           {error && (
             <div style={{ 
-              color: "#ef4444", 
+              color: "#f87171", 
               textAlign: "center", 
-              marginTop: "20px",
-              padding: "12px",
-              backgroundColor: "rgba(239, 68, 68, 0.1)",
+              marginTop: "32px",
+              padding: "16px",
+              backgroundColor: "rgba(248, 113, 113, 0.1)",
               borderRadius: "8px",
-              maxWidth: "400px",
-              margin: "20px auto"
+              border: "1px solid rgba(248, 113, 113, 0.2)",
+              maxWidth: "500px",
+              margin: "32px auto"
             }}>
               {error}
             </div>
           )}
-        </div>
+        </main>
       ) : (
-        <div>
+        <div style={{ display: "flex", flexDirection: "column", height: "100vh" }}>
           <header style={{ 
-            padding: "20px 40px", 
-            borderBottom: "1px solid #1f2937", 
+            padding: "16px 32px", 
+            borderBottom: "1px solid #1e293b", 
             display: "flex", 
             justifyContent: "space-between", 
             alignItems: "center",
-            backgroundColor: "#111827"
+            backgroundColor: "#0f172a",
+            zIndex: 10
           }}>
-            <h2 style={{ 
-              fontSize: "1.5rem", 
-              fontWeight: "bold",
-              background: "linear-gradient(135deg, #818cf8, #c084fc, #fb7185)",
-              WebkitBackgroundClip: "text",
-              WebkitTextFillColor: "transparent"
-            }}>
-              EDGE_LENS
+            <h2 style={{ fontSize: "1.25rem", fontWeight: "700", color: "#ffffff" }}>
+              PRISM <span style={{ fontWeight: "400", color: "#94a3b8" }}>Analytics</span>
             </h2>
-            <button 
-              onClick={handleReset}
-              style={{
-                backgroundColor: "#374151",
-                color: "white",
-                border: "none",
-                padding: "8px 16px",
-                borderRadius: "8px",
-                cursor: "pointer",
-                fontWeight: "500"
-              }}
-            >
-              New Search
-            </button>
+            <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+              <button 
+                onClick={() => setShowBookmarks(!showBookmarks)}
+                style={{
+                  backgroundColor: showBookmarks ? "#3b82f6" : "transparent",
+                  color: "#ffffff",
+                  border: "1px solid #334155",
+                  padding: "8px 16px",
+                  borderRadius: "6px",
+                  cursor: "pointer",
+                  fontSize: "0.875rem",
+                  fontWeight: "500"
+                }}
+              >
+                {showBookmarks ? "Show Results" : `Saved Items (${bookmarks.length})`}
+              </button>
+              <button 
+                onClick={handleReset}
+                style={{
+                  backgroundColor: "#ffffff",
+                  color: "#0f172a",
+                  border: "none",
+                  padding: "8px 16px",
+                  borderRadius: "6px",
+                  cursor: "pointer",
+                  fontSize: "0.875rem",
+                  fontWeight: "600"
+                }}
+              >
+                New Analysis
+              </button>
+            </div>
           </header>
           
-          <div style={{ padding: "40px" }}>
-            <div style={{ 
-              maxWidth: "1280px", 
-              margin: "0 auto", 
-              marginBottom: "40px",
-              backgroundColor: "rgba(31, 41, 55, 0.5)",
-              padding: "32px",
-              borderRadius: "24px",
-              border: "1px solid rgba(75, 85, 99, 0.3)"
-            }}>
-              <h3 style={{ fontSize: "1.5rem", marginBottom: "20px", color: "#e5e7eb" }}>Project Summary</h3>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "24px" }}>
+          <div style={{ flex: 1, overflow: "auto", padding: "32px" }}>
+            <div style={{ maxWidth: "1400px", margin: "0 auto" }}>
+              <div style={{ 
+                marginBottom: "32px",
+                backgroundColor: "#1e293b",
+                padding: "24px",
+                borderRadius: "12px",
+                border: "1px solid #334155",
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+                gap: "24px"
+              }}>
                 <div>
-                  <p style={{ color: "#9ca3af", fontSize: "0.875rem", marginBottom: "4px" }}>Task</p>
-                  <p style={{ fontSize: "1.125rem", fontWeight: "600" }}>{report.summary.task}</p>
+                  <label style={{ color: "#94a3b8", fontSize: "0.75rem", textTransform: "uppercase", letterSpacing: "0.05em", display: "block", marginBottom: "8px" }}>Primary Task</label>
+                  <p style={{ fontSize: "1rem", fontWeight: "600" }}>{report.summary.task}</p>
                 </div>
                 <div>
-                  <p style={{ color: "#9ca3af", fontSize: "0.875rem", marginBottom: "4px" }}>Target Device</p>
-                  <p style={{ fontSize: "1.125rem", fontWeight: "600" }}>{report.summary.device}</p>
+                  <label style={{ color: "#94a3b8", fontSize: "0.75rem", textTransform: "uppercase", letterSpacing: "0.05em", display: "block", marginBottom: "8px" }}>Hardware</label>
+                  <p style={{ fontSize: "1rem", fontWeight: "600" }}>{report.summary.device}</p>
                 </div>
                 <div>
-                  <p style={{ color: "#9ca3af", fontSize: "0.875rem", marginBottom: "4px" }}>Memory Limit</p>
-                  <p style={{ fontSize: "1.125rem", fontWeight: "600" }}>{report.summary.constraints.memoryMB} MB</p>
+                  <label style={{ color: "#94a3b8", fontSize: "0.75rem", textTransform: "uppercase", letterSpacing: "0.05em", display: "block", marginBottom: "8px" }}>RAM Constraint</label>
+                  <p style={{ fontSize: "1rem", fontWeight: "600" }}>{report.summary.constraints.memoryMB} MB</p>
                 </div>
                 <div>
-                  <p style={{ color: "#9ca3af", fontSize: "0.875rem", marginBottom: "4px" }}>Latency Goal</p>
-                  <p style={{ fontSize: "1.125rem", fontWeight: "600" }}>&lt; {report.summary.constraints.latencyMs} ms</p>
+                  <label style={{ color: "#94a3b8", fontSize: "0.75rem", textTransform: "uppercase", letterSpacing: "0.05em", display: "block", marginBottom: "8px" }}>Latency SLA</label>
+                  <p style={{ fontSize: "1rem", fontWeight: "600" }}>{report.summary.constraints.latencyMs}ms Target</p>
                 </div>
               </div>
-            </div>
 
-            <Dashboard candidates={report.topResults} />
+              <Dashboard 
+                candidates={showBookmarks ? bookmarks : (report.topResults || [])} 
+                bookmarks={bookmarks}
+                onToggleBookmark={toggleBookmark}
+                isOnlyBookmarks={showBookmarks}
+              />
 
-            <div style={{ maxWidth: "1280px", margin: "40px auto 0" }}>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "32px" }}>
-                <section>
-                  <h3 style={{ fontSize: "1.25rem", marginBottom: "16px", color: "#f3f4f6" }}>Trend Insights</h3>
-                  <ul style={{ listStyle: "none", padding: 0 }}>
+              {papersLoading && (
+                <div style={{ 
+                  margin: "24px 0",
+                  padding: "12px", 
+                  backgroundColor: "rgba(59, 130, 246, 0.1)",
+                  borderRadius: "8px",
+                  border: "1px solid rgba(59, 130, 246, 0.2)",
+                  textAlign: "center",
+                  color: "#60a5fa",
+                  fontSize: "0.875rem"
+                }}>
+                  Secondary enrichment active: retrieving research literature...
+                </div>
+              )}
+
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(400px, 1fr))", gap: "24px", marginTop: "32px" }}>
+                <section style={{ backgroundColor: "#1e293b", padding: "24px", borderRadius: "12px", border: "1px solid #334155" }}>
+                  <h3 style={{ fontSize: "1rem", marginBottom: "16px", color: "#f1f5f9", display: "flex", alignItems: "center", gap: "8px" }}>
+                    <div style={{ width: "8px", height: "8px", borderRadius: "50%", backgroundColor: "#3b82f6" }}></div>
+                    Strategic Insights
+                  </h3>
+                  <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
                     {report.trendInsights.map((insight, i) => (
-                      <li key={i} style={{ 
-                        padding: "12px 16px", 
-                        backgroundColor: "#1f2937", 
-                        borderRadius: "12px", 
-                        marginBottom: "8px",
-                        borderLeft: "4px solid #818cf8"
-                      }}>
+                      <div key={i} style={{ fontSize: "0.9375rem", color: "#94a3b8", lineHeight: "1.5", paddingLeft: "16px", borderLeft: "1px solid #334155" }}>
                         {insight}
-                      </li>
+                      </div>
                     ))}
-                  </ul>
+                  </div>
                 </section>
-                <section>
-                  <h3 style={{ fontSize: "1.25rem", marginBottom: "16px", color: "#f3f4f6" }}>Suggestions</h3>
-                  <ul style={{ listStyle: "none", padding: 0 }}>
+                <section style={{ backgroundColor: "#1e293b", padding: "24px", borderRadius: "12px", border: "1px solid #334155" }}>
+                  <h3 style={{ fontSize: "1rem", marginBottom: "16px", color: "#f1f5f9", display: "flex", alignItems: "center", gap: "8px" }}>
+                    <div style={{ width: "8px", height: "8px", borderRadius: "50%", backgroundColor: "#10b981" }}></div>
+                    Architecture Suggestions
+                  </h3>
+                  <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
                     {report.suggestions.map((suggestion, i) => (
-                      <li key={i} style={{ 
-                        padding: "12px 16px", 
-                        backgroundColor: "#1f2937", 
-                        borderRadius: "12px", 
-                        marginBottom: "8px",
-                        borderLeft: "4px solid #fb7185"
-                      }}>
+                      <div key={i} style={{ fontSize: "0.9375rem", color: "#94a3b8", lineHeight: "1.5", paddingLeft: "16px", borderLeft: "1px solid #334155" }}>
                         {suggestion}
-                      </li>
+                      </div>
                     ))}
-                  </ul>
+                  </div>
                 </section>
               </div>
             </div>

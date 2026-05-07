@@ -5,31 +5,70 @@ import { fetchGitHubRepos } from "../retrieval/githubClient";
 import { fetchArxivPapers } from "../retrieval/arxivClient";
 import { scoreAndRank } from "../scoring";
 import { buildReport } from "../report/reportBuilder";
+import { enrichmentStore } from "./enrichmentStore";
 
+/**
+ * PRISM Step Orchestration
+ * Handles the logic flow, including the "Agentic Fallback" for sparse results.
+ */
 export function registerPrismSteps() {
   OpenClaw.register("parse_input", async (state) => {
     const parsedInput = parseInput(state.rawInput);
-    console.log(`[OpenClaw] Step: parse_input -> Task: ${parsedInput.task}`);
-    return { ...state, parsedInput };
+    const requestId = Math.random().toString(36).substring(7);
+    console.log(`[OpenClaw] Step: parse_input -> Task: ${parsedInput.task}, ID: ${requestId}`);
+    enrichmentStore.create(requestId);
+    return { ...state, parsedInput, requestId };
   });
 
   OpenClaw.register("retrieve_candidates", async (state) => {
-    if (!state.parsedInput) throw new Error("Parsed input missing");
+    if (!state.parsedInput || !state.requestId) throw new Error("Parsed input or Request ID missing");
     
-    const [hf, gh, arxiv] = await Promise.all([
+    // Launch ArXiv in background — DO NOT AWAIT initially
+    const arxivPromise = fetchArxivPapers(state.parsedInput.task);
+    
+    // Immediate retrieval for HF and GitHub
+    const [hf, gh] = await Promise.all([
       fetchHFModels(state.parsedInput.task),
       fetchGitHubRepos(state.parsedInput.task),
-      fetchArxivPapers(state.parsedInput.task),
     ]);
 
-    const mergedCandidates = [...hf, ...gh, ...arxiv];
-    console.log(`[OpenClaw] Step: retrieve_candidates -> Found ${mergedCandidates.length} total candidates`);
+    let githubCandidates = gh;
+    let hfCandidates = hf;
+
+    // AGENTIC FALLBACK: If GitHub results are sparse (< 10), fetch trending/famous repos globally
+    if (githubCandidates.length < 10) {
+      console.log(`[OpenClaw] 🔄 GitHub sparse (${githubCandidates.length}). Fetching global trending repos...`);
+      const trendingGh = await fetchGitHubRepos("trending ai"); 
+      const existingIds = new Set(githubCandidates.map(c => c.id));
+      const newTrending = trendingGh.filter(c => !existingIds.has(c.id)).slice(0, 20);
+      githubCandidates = [...githubCandidates, ...newTrending];
+    }
+
+    // Await ArXiv for the final merged set
+    let arxivCandidates = await arxivPromise;
+
+    // AGENTIC FALLBACK: If ArXiv results are sparse (< 10), fetch recent famous AI papers
+    if (arxivCandidates.length < 10) {
+      console.log(`[OpenClaw] 🔄 ArXiv sparse (${arxivCandidates.length}). Fetching popular AI research...`);
+      const famousPapers = await fetchArxivPapers("state of the art ai machine learning");
+      const existingIds = new Set(arxivCandidates.map(c => c.id));
+      const newFamous = famousPapers.filter(c => !existingIds.has(c.id)).slice(0, 15);
+      arxivCandidates = [...arxivCandidates, ...newFamous];
+    }
+
+    // Update background store with enriched ArXiv results
+    const scoredArxiv = scoreAndRank(arxivCandidates, state.parsedInput);
+    enrichmentStore.update(state.requestId, scoredArxiv);
+
+    const mergedCandidates = [...hfCandidates, ...githubCandidates];
+    
+    console.log(`[OpenClaw] Step: retrieve_candidates -> Found ${mergedCandidates.length} immediate candidates (ArXiv enriched: ${arxivCandidates.length})`);
     
     return { 
       ...state, 
-      hfCandidates: hf, 
-      githubCandidates: gh, 
-      arxivCandidates: arxiv, 
+      hfCandidates, 
+      githubCandidates, 
+      arxivCandidates,
       mergedCandidates 
     };
   });
@@ -37,7 +76,7 @@ export function registerPrismSteps() {
   OpenClaw.register("expand_search_context", async (state) => {
     if (!state.mergedCandidates || state.mergedCandidates.length === 0) return state;
 
-    // Agentic behavior: extract keywords from top candidates
+    // Extract keywords from top candidates for recursive discovery
     const allTags = state.mergedCandidates.flatMap(c => c.tags);
     const tagCounts: Record<string, number> = {};
     allTags.forEach(tag => {
@@ -50,9 +89,10 @@ export function registerPrismSteps() {
       .map(e => e[0])
       .slice(0, 3);
 
+    if (sortedTags.length === 0) return state;
+
     console.log(`[OpenClaw] Step: expand_search_context -> Identified expansion keywords: ${sortedTags.join(", ")}`);
     
-    // Perform second pass retrieval for each new keyword
     const expansionResults = await Promise.all(
         sortedTags.map(tag => fetchHFModels(tag))
     );
@@ -81,12 +121,10 @@ export function registerPrismSteps() {
   });
 
   OpenClaw.register("analyze_trends", async (state) => {
-    console.log(`[OpenClaw] Step: analyze_trends -> Analyzing market direction for candidates`);
     return state;
   });
 
   OpenClaw.register("check_compatibility", async (state) => {
-    console.log(`[OpenClaw] Step: check_compatibility -> Validating hardware alignment`);
     return state;
   });
 

@@ -25,25 +25,36 @@ export function rankCandidates(
   const topResults: ScoredCandidate[] = [];
 
   for (const candidate of candidates) {
-    // ── STEP 1: Hard check — remove if fails ─────────────
-    const hardCheck = passesHardConstraints(candidate, parsed);
-    if (!hardCheck.passes) {
-      continue; // This candidate is gone (we don't have rejectedResults array returned here based on current API, just filtering them out for now)
-    }
-
     const appearsInMultipleSources = multiSourceNames.has(candidate.name.toLowerCase());
 
-    // ── STEP 2: Base scores ──────────────────────────────
+    // ── STEP 1: Base scores ──────────────────────────────
     const baseMatch = matchScore(candidate, parsed);
     const baseFeasibility = feasibilityScore(candidate, parsed);
     const baseConfidence = confidenceScore(candidate, appearsInMultipleSources);
     const trendDirection = analyzeTrend(candidate, candidates);
 
+    // ── STEP 2: Hard constraint "softening" ─────────────
+    // Instead of deleting, we penalize heavily but show it.
+    let hardPenalty = 0;
+    const failedHard: string[] = [];
+
+    if (candidate.sizeMB && candidate.sizeMB > parsed.memoryMB) {
+        hardPenalty += 60;
+        failedHard.push(`Exceeds RAM (${candidate.sizeMB}MB)`);
+    }
+    if (parsed.offline) {
+        const offlineTags = ["gguf", "onnx", "tflite", "local", "offline", "edge"];
+        if (!offlineTags.some(t => candidate.tags?.map(ct => ct.toLowerCase()).includes(t))) {
+            hardPenalty += 40;
+            failedHard.push("Likely requires cloud API");
+        }
+    }
+
     // ── STEP 3: Soft penalties — reduce scores ───────────
     const penalties = computeSoftPenalties(candidate, parsed);
 
     const finalMatch = Math.max(0, baseMatch - penalties.matchPenalty);
-    const finalFeasibility = Math.max(0, baseFeasibility - penalties.feasibilityPenalty);
+    const finalFeasibility = Math.max(0, baseFeasibility - penalties.feasibilityPenalty - hardPenalty);
     const finalConfidence = Math.max(0, baseConfidence - penalties.confidencePenalty);
 
     // ── STEP 4: Combined score ───────────────────────────
@@ -68,7 +79,7 @@ export function rankCandidates(
       trendDirection,
       compatibility,
       passedChecks: penalties.passedSoftChecks,
-      failedChecks: penalties.failedSoftChecks,
+      failedChecks: [...penalties.failedSoftChecks, ...failedHard],
     });
   }
 

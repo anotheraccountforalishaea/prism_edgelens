@@ -4,10 +4,15 @@ import { runPipeline } from "./index";
 import { ScoredCandidate, PRISMReport, ParsedInput } from "./schemas/types";
 import { buildReport } from "./report/reportBuilder";
 import { explainCandidate } from "./explainer/ollamaExplainer";
+import { enrichmentStore } from "./orchestration/enrichmentStore";
 
 const app = express();
 app.use(cors());
 app.use(express.json());
+
+app.get("/", (req, res) => {
+  res.send("PRISM Backend is running. Powered by OpenClaw Orchestration.");
+});
 
 // Store results and parsed input in memory so /explain/:id can look them up
 let lastResults: ScoredCandidate[] = [];
@@ -23,13 +28,13 @@ app.post("/evaluate", async (req, res) => {
       return;
     }
 
-    const { parsed, scored, report } = await runPipeline(input);
+    const { parsed, scored, report, requestId } = await runPipeline(input);
 
     // Cache for explain endpoint
     lastResults = scored;
     lastParsedInput = parsed;
 
-    res.json(report);
+    res.json({ ...report, requestId });
   } catch (error: any) {
     console.error("Pipeline error:", error);
     res.status(500).json({ error: error.message });
@@ -37,7 +42,6 @@ app.post("/evaluate", async (req, res) => {
 });
 
 // GET /explain/:id — placeholder for P4's Ollama explainer
-// P4 will wire this to ollamaExplainer.ts
 app.get("/explain/:id", async (req, res) => {
   const candidateId = decodeURIComponent(req.params.id);
   const candidate = lastResults.find(c => c.id === candidateId);
@@ -58,6 +62,17 @@ app.get("/explain/:id", async (req, res) => {
   } catch (error: any) {
     res.status(500).json({ error: "Failed to generate explanation with Ollama" });
   }
+});
+
+app.get("/enrichment/:requestId", (req, res) => {
+  const { requestId } = req.params;
+  const data = enrichmentStore.get(requestId);
+  
+  if (!data) {
+    return res.status(404).json({ error: "Request not found" });
+  }
+  
+  res.json(data);
 });
 
 app.listen(3000, () => {

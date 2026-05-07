@@ -3,11 +3,11 @@ import { Candidate } from "../schemas/types";
 export function confidenceScore(c: Candidate, appearsInMultipleSources: boolean = false): number {
   let score = 0;
 
-  // Popularity signal
-  if ((c.downloads && c.downloads > 10000) || (c.stars && c.stars > 500)) {
-    score += 40;
-  } else if ((c.downloads && c.downloads > 1000) || (c.stars && c.stars > 100)) {
-    score += 20; // Moderate popularity — partial credit
+  // Popularity signal (weighted more heavily for "famous" results)
+  if ((c.downloads && c.downloads > 50000) || (c.stars && c.stars > 2000)) {
+    score += 50;
+  } else if ((c.downloads && c.downloads > 5000) || (c.stars && c.stars > 200)) {
+    score += 25; // Moderate popularity — partial credit
   }
 
   // Cross-source corroboration (e.g. appears on both HF and GitHub)

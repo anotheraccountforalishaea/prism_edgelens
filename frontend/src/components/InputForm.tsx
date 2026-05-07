@@ -6,79 +6,92 @@ interface InputFormProps {
 }
 
 export const InputForm: React.FC<InputFormProps> = ({ onSubmit, isLoading }) => {
-  const [text, setText] = useState('');
+  const [input, setInput] = useState('');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (text.trim()) {
-      onSubmit(text);
+    if (input.trim() && !isLoading) {
+      onSubmit(input);
     }
   };
 
   return (
-    <div style={{
-      padding: '40px',
-      background: 'rgba(31, 41, 55, 0.5)',
-      backdropFilter: 'blur(10px)',
-      borderRadius: '24px',
-      border: '1px solid rgba(75, 85, 99, 0.3)',
-      maxWidth: '800px',
-      margin: '40px auto',
-      boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)'
-    }}>
-      <h2 style={{ 
-        color: 'white', 
-        fontSize: '1.5rem', 
-        marginBottom: '24px',
-        textAlign: 'center'
-      }}>
-        What are you building?
-      </h2>
-      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+    <form 
+      onSubmit={handleSubmit} 
+      style={{
+        width: '100%',
+        maxWidth: '800px',
+        margin: '0 auto',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '24px'
+      }}
+    >
+      <div style={{ position: 'relative' }}>
         <textarea
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          placeholder="e.g., I need an object detection model for a Raspberry Pi 4 that works offline with less than 100ms latency..."
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          placeholder="Specify project requirements, hardware constraints, and technical goals..."
           style={{
             width: '100%',
-            height: '150px',
-            padding: '20px',
-            backgroundColor: '#111827',
-            border: '1px solid #374151',
-            borderRadius: '16px',
-            color: 'white',
-            fontSize: '1rem',
-            resize: 'none',
-            outline: 'none',
-            transition: 'border-color 0.2s',
-            boxSizing: 'border-box'
-          }}
-          onFocus={(e) => e.target.style.borderColor = '#6366f1'}
-          onBlur={(e) => e.target.style.borderColor = '#374151'}
-        />
-        <button
-          type="submit"
-          disabled={isLoading || !text.trim()}
-          style={{
-            padding: '16px 32px',
-            backgroundColor: isLoading ? '#4b5563' : '#6366f1',
-            color: 'white',
-            border: 'none',
+            minHeight: '160px',
+            padding: '24px',
+            backgroundColor: '#1e293b',
+            color: '#f1f5f9',
+            border: '1px solid #334155',
             borderRadius: '12px',
-            fontSize: '1.1rem',
-            fontWeight: '600',
-            cursor: isLoading ? 'not-allowed' : 'pointer',
-            transition: 'transform 0.2s, background-color 0.2s',
-            boxShadow: '0 10px 15px -3px rgba(99, 102, 241, 0.3)'
+            fontSize: '1rem',
+            lineHeight: '1.6',
+            resize: 'vertical',
+            outline: 'none',
+            transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
+            fontFamily: 'inherit'
           }}
-          onMouseOver={(e) => !isLoading && (e.currentTarget.style.backgroundColor = '#4f46e5')}
-          onMouseOut={(e) => !isLoading && (e.currentTarget.style.backgroundColor = '#6366f1')}
-          onMouseDown={(e) => !isLoading && (e.currentTarget.style.transform = 'scale(0.98)')}
-          onMouseUp={(e) => !isLoading && (e.currentTarget.style.transform = 'scale(1)')}
-        >
-          {isLoading ? 'Analyzing Project...' : 'Generate EDGE_LENS Report'}
-        </button>
-      </form>
-    </div>
+          onFocus={e => {
+            e.currentTarget.style.borderColor = '#3b82f6';
+            e.currentTarget.style.boxShadow = '0 0 0 4px rgba(59, 130, 246, 0.1)';
+          }}
+          onBlur={e => {
+            e.currentTarget.style.borderColor = '#334155';
+            e.currentTarget.style.boxShadow = 'none';
+          }}
+        />
+      </div>
+      
+      <button
+        type="submit"
+        disabled={isLoading || !input.trim()}
+        style={{
+          padding: '16px 32px',
+          backgroundColor: isLoading ? '#334155' : '#3b82f6',
+          color: '#ffffff',
+          border: 'none',
+          borderRadius: '8px',
+          fontSize: '1rem',
+          fontWeight: '600',
+          cursor: isLoading ? 'not-allowed' : 'pointer',
+          alignSelf: 'center',
+          minWidth: '240px',
+          transition: 'all 0.2s ease'
+        }}
+      >
+        {isLoading ? 'Processing Analysis...' : 'Initiate Intelligence Matrix'}
+      </button>
+      
+      <div style={{ display: 'flex', justifyContent: 'center', gap: '32px', marginTop: '16px' }}>
+        <div style={{ textAlign: 'center' }}>
+          <p style={{ fontSize: '0.75rem', fontWeight: '700', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px' }}>Discovery Depth</p>
+          <p style={{ fontSize: '0.875rem', color: '#94a3b8' }}>150+ Candidates</p>
+        </div>
+        <div style={{ textAlign: 'center' }}>
+          <p style={{ fontSize: '0.75rem', fontWeight: '700', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px' }}>Analysis Engine</p>
+          <p style={{ fontSize: '0.875rem', color: '#94a3b8' }}>OpenClaw v2.1</p>
+        </div>
+        <div style={{ textAlign: 'center' }}>
+          <p style={{ fontSize: '0.75rem', fontWeight: '700', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px' }}>Search Mode</p>
+          <p style={{ fontSize: '0.875rem', color: '#94a3b8' }}>Multi-Keyword OR</p>
+        </div>
+      </div>
+    </form>
   );
 };

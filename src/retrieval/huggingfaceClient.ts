@@ -2,73 +2,54 @@ import axios from "axios";
 import { Candidate } from "../schemas/types";
 
 /**
- * Fetches trending AI models from HuggingFace based on a task.
- *
- * API: GET https://huggingface.co/api/models
- * Free — no token required for basic search (token increases rate limit)
+ * LAYER 1 — SMART RETRIEVAL (HuggingFace)
+ * Uses structured filters and trending scores for precision retrieval.
  */
 export async function fetchHFModels(task: string): Promise<Candidate[]> {
   try {
     const url = "https://huggingface.co/api/models";
-
-    // HuggingFace needs hyphenated task names: "object detection" → "object-detection"
     const pipelineTag = task.replace(/\s+/g, "-").toLowerCase();
 
-    // Try pipeline_tag first
-    let data: any[] = [];
-    try {
-      const response = await axios.get(url, {
-        params: {
-          pipeline_tag: pipelineTag,
-          sort: "downloads",       // sort by downloads = actually popular models
-          direction: -1,           // descending order (most downloads first)
-          limit: 20,
-        },
-        headers: process.env.HF_TOKEN
-          ? { Authorization: `Bearer ${process.env.HF_TOKEN}` }
-          : {},
-      });
-      data = response.data;
-    } catch (e) {
-      console.log(`Pipeline tag search failed, trying keyword search...`);
-    }
+    const response = await axios.get(url, {
+      params: {
+        pipeline_tag: pipelineTag,
+        sort: "trendingScore",
+        direction: -1,
+        limit: 50,
+        full: true, // Fetch card data
+      },
+      headers: process.env.HF_TOKEN ? { Authorization: `Bearer ${process.env.HF_TOKEN}` } : {},
+    });
 
-    // Fallback: search by keyword instead of pipeline_tag if we got 0 results
-    if (!data || data.length === 0) {
-      try {
-        const response = await axios.get(url, {
-          params: { search: task, sort: "downloads", direction: -1, limit: 20 },
-          headers: process.env.HF_TOKEN
-            ? { Authorization: `Bearer ${process.env.HF_TOKEN}` }
-            : {},
-        });
-        data = response.data;
-      } catch (e) {
-        console.log(`Keyword search also failed.`);
-      }
-    }
+    const data: any[] = response.data;
+    
+    const models: Candidate[] = data
+      .filter((m: any) => {
+        // Pre-filter: hard reject low downloads and irrelevant types
+        const downloads = m.downloads || 0;
+        const tags = m.tags || [];
+        if (downloads < 500) return false;
+        if (tags.includes("dataset") || tags.includes("space")) return false;
+        
+        const validFrameworks = ["pytorch", "transformers", "onnx", "tflite", "gguf"];
+        return validFrameworks.some(f => tags.includes(f));
+      })
+      .map((model: any) => ({
+        id: model.id,
+        name: model.id,
+        source: "huggingface" as const,
+        url: `https://huggingface.co/${model.id}`,
+        description: model.cardData?.summary || (model.tags || []).join(", "),
+        tags: model.tags || [],
+        sizeMB: model.safetensors?.total
+          ? Math.round(model.safetensors.total / (1024 * 1024))
+          : undefined,
+        downloads: model.downloads || 0,
+        recentActivity: model.downloads30d || model.downloads || 0,
+        lastUpdated: model.lastModified,
+      }));
 
-    // Filter out models with very few downloads (noise)
-    const filtered = data.filter((m: any) => (m.downloads || 0) >= 100);
-
-    const models: Candidate[] = filtered.map((model: any) => ({
-      id: model.modelId || model.id,
-      name: model.modelId || model.id,
-      source: "huggingface" as const,
-      url: `https://huggingface.co/${model.modelId || model.id}`,
-      description:
-        model.cardData?.description ||
-        (model.tags || []).join(", ") ||
-        "No description available",
-      tags: model.tags || [],
-      sizeMB: model.safetensors?.total
-        ? Math.round(model.safetensors.total / (1024 * 1024))
-        : undefined,
-      downloads: model.downloads || 0,
-      recentActivity: model.downloads || 0,
-    }));
-
-    console.log(`✅ HuggingFace: Fetched ${models.length} models for task "${task}" (all 100+ ⬇)`);
+    console.log(`✅ HuggingFace: Fetched ${models.length} models for task "${task}"`);
     return models;
   } catch (error: any) {
     console.error(`❌ HuggingFace fetch failed: ${error.message}`);

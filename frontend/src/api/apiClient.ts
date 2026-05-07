@@ -1,4 +1,4 @@
-import type { PRISMReport } from "../types/types";
+import type { PRISMReport, ScoredCandidate } from "../types/types";
 
 const BASE_URL = "http://localhost:3000";
 
@@ -23,6 +23,20 @@ export async function getExplanation(id: string): Promise<{ id: string; explanat
   
   if (!response.ok) {
     throw new Error(`Explanation error: ${response.statusText}`);
+  }
+
+  return response.json();
+}
+
+export async function getEnrichment(requestId: string): Promise<{
+  requestId: string;
+  arxivResults: ScoredCandidate[];
+  status: "pending" | "completed" | "failed";
+}> {
+  const response = await fetch(`${BASE_URL}/enrichment/${requestId}`);
+  
+  if (!response.ok) {
+    throw new Error(`Enrichment error: ${response.statusText}`);
   }
 
   return response.json();

@@ -6,41 +6,33 @@ interface TrendBadgeProps {
 }
 
 export const TrendBadge: React.FC<TrendBadgeProps> = ({ direction }) => {
-  let label = '';
-  let color = '';
-  let bgColor = '';
+  const getStyles = () => {
+    switch (direction) {
+      case 'rising':
+        return { color: '#10b981', label: 'Market Uptrend' };
+      case 'stable':
+        return { color: '#3b82f6', label: 'Market Stable' };
+      case 'declining':
+        return { color: '#64748b', label: 'Market Downtrend' };
+      default:
+        return { color: '#64748b', label: 'Market Neutral' };
+    }
+  };
 
-  switch (direction) {
-    case 'rising':
-      label = '🔥 Rising';
-      color = '#ef4444'; // Red-orange
-      bgColor = 'rgba(239, 68, 68, 0.15)';
-      break;
-    case 'stable':
-      label = '→ Stable';
-      color = '#3b82f6'; // Blue
-      bgColor = 'rgba(59, 130, 246, 0.15)';
-      break;
-    case 'declining':
-      label = '↓ Declining';
-      color = '#9ca3af'; // Gray
-      bgColor = 'rgba(156, 163, 175, 0.15)';
-      break;
-  }
+  const { color, label } = getStyles();
 
   return (
     <span style={{
+      fontSize: '0.625rem',
+      fontWeight: '700',
+      textTransform: 'uppercase',
+      letterSpacing: '0.05em',
+      color: color,
       display: 'inline-flex',
       alignItems: 'center',
-      padding: '4px 8px',
-      borderRadius: '999px',
-      fontSize: '0.75rem',
-      fontWeight: 600,
-      color: color,
-      backgroundColor: bgColor,
-      border: `1px solid ${color}`,
-      whiteSpace: 'nowrap'
+      gap: '4px'
     }}>
+      <div style={{ width: '4px', height: '4px', borderRadius: '50%', backgroundColor: color }}></div>
       {label}
     </span>
   );

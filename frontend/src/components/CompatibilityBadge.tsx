@@ -6,42 +6,36 @@ interface CompatibilityBadgeProps {
 }
 
 export const CompatibilityBadge: React.FC<CompatibilityBadgeProps> = ({ level }) => {
-  let label = '';
-  let color = '';
-  let bgColor = '';
+  const getStyles = () => {
+    switch (level) {
+      case 'compatible':
+        return { color: '#10b981', bg: 'rgba(16, 185, 129, 0.1)', border: 'rgba(16, 185, 129, 0.2)' };
+      case 'partial':
+        return { color: '#3b82f6', bg: 'rgba(59, 130, 246, 0.1)', border: 'rgba(59, 130, 246, 0.2)' };
+      case 'incompatible':
+        return { color: '#94a3b8', bg: 'rgba(148, 163, 184, 0.1)', border: 'rgba(148, 163, 184, 0.2)' };
+      default:
+        return { color: '#94a3b8', bg: 'rgba(148, 163, 184, 0.1)', border: 'rgba(148, 163, 184, 0.2)' };
+    }
+  };
 
-  switch (level) {
-    case 'compatible':
-      label = '✅ Compatible';
-      color = '#10b981';
-      bgColor = 'rgba(16, 185, 129, 0.15)';
-      break;
-    case 'partial':
-      label = '⚠️ Partial';
-      color = '#f59e0b';
-      bgColor = 'rgba(245, 158, 11, 0.15)';
-      break;
-    case 'incompatible':
-      label = '❌ Incompatible';
-      color = '#ef4444';
-      bgColor = 'rgba(239, 68, 68, 0.15)';
-      break;
-  }
+  const { color, bg, border } = getStyles();
 
   return (
     <span style={{
-      display: 'inline-flex',
-      alignItems: 'center',
-      padding: '4px 8px',
-      borderRadius: '999px',
-      fontSize: '0.75rem',
-      fontWeight: 600,
+      fontSize: '0.625rem',
+      fontWeight: '700',
+      textTransform: 'uppercase',
+      letterSpacing: '0.05em',
       color: color,
-      backgroundColor: bgColor,
-      border: `1px solid ${color}`,
-      whiteSpace: 'nowrap'
+      backgroundColor: bg,
+      padding: '4px 8px',
+      borderRadius: '4px',
+      border: `1px solid ${border}`,
+      display: 'inline-flex',
+      alignItems: 'center'
     }}>
-      {label}
+      {level.replace('-', ' ')}
     </span>
   );
 };

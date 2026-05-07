@@ -30,7 +30,9 @@ export interface ScoredCandidate extends Candidate {
   confidenceScore: number;
   trendDirection: TrendDirection;
   compatibility: CompatibilityLevel;
-  explanation?: string | undefined;         // filled in by Ollama on demand
+  explanation?: string | undefined;
+  passedChecks?: string[];
+  failedChecks?: string[];
 }
 
 export interface PRISMReport {
@@ -43,4 +45,5 @@ export interface PRISMReport {
   rejectedResults: { candidate: Candidate; reason: string }[];
   trendInsights: string[];
   suggestions: string[];
+  requestId?: string;
 }

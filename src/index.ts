@@ -14,6 +14,7 @@ export async function runPipeline(rawInput: string): Promise<{
   scored: ScoredCandidate[];
   allCandidates: Candidate[];
   report: PRISMReport;
+  requestId: string;
 }> {
   const prismAgent = new OpenClaw()
     .step("parse_input")
@@ -26,7 +27,7 @@ export async function runPipeline(rawInput: string): Promise<{
 
   const state = await prismAgent.run(rawInput);
 
-  if (!state.parsedInput || !state.scoredCandidates || !state.report) {
+  if (!state.parsedInput || !state.scoredCandidates || !state.report || !state.requestId) {
     throw new Error("Pipeline failed to complete all critical steps.");
   }
 
@@ -35,6 +36,7 @@ export async function runPipeline(rawInput: string): Promise<{
     scored: state.scoredCandidates,
     allCandidates: state.mergedCandidates || [],
     report: state.report,
+    requestId: state.requestId,
   };
 }
 

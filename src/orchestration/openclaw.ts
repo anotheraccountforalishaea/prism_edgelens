@@ -3,6 +3,7 @@ import { ParsedInput, Candidate, ScoredCandidate, PRISMReport } from "../schemas
 
 export interface WorkflowState {
   rawInput: string;
+  requestId?: string;
   parsedInput?: ParsedInput;
   hfCandidates?: Candidate[];
   githubCandidates?: Candidate[];

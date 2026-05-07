@@ -1,37 +1,45 @@
 import { Candidate, ParsedInput } from "../schemas/types";
 
+/**
+ * Calculates a feasibility score (0-100) based on hardware constraints.
+ * Softens rejection logic to ensure 'famous' results still surface with warnings.
+ */
 export function feasibilityScore(c: Candidate, input: ParsedInput): number {
   let score = 0;
 
-  // Memory check — hard fail if model is too large
+  // 1. Memory alignment (50 points)
   if (c.sizeMB !== undefined) {
     if (c.sizeMB <= input.memoryMB) {
       score += 50;
     } else {
-      return 0; // Auto-reject: exceeds memory budget
+      // PENALTY instead of AUTO-REJECT (0 points but doesn't kill the item)
+      // This allows famous large models to show up with low feasibility scores
+      score += 0; 
     }
   } else {
-    // Unknown size — give partial credit, not a free pass
-    score += 25;
+    // Unknown size — give partial credit (30 points)
+    score += 30;
   }
 
-  // Latency feasibility (rough heuristic based on model size)
+  // 2. Latency alignment (30 points)
   if (c.sizeMB !== undefined && input.latencyMs > 0) {
-    // Very rough: ~1ms per MB as a baseline on modern hardware
-    const estimatedLatencyMs = c.sizeMB * 1;
+    const estimatedLatencyMs = c.sizeMB * 1.5; // Heuristic: 1.5ms per MB
     if (estimatedLatencyMs <= input.latencyMs) {
       score += 30;
     } else if (estimatedLatencyMs <= input.latencyMs * 2) {
-      score += 15; // Marginal — might work with optimization
+      score += 15;
     }
-    // else: 0 — likely too slow
   } else {
-    score += 15; // Unknown latency — partial credit
+    score += 15; // Unknown latency
   }
 
-  // Optimization tags (quantization, pruning help with both memory + latency)
-  const optimizationTags = ["quantized", "pruned", "int8", "int4", "fp16", "distilled", "compressed"];
-  if (c.tags?.some(t => optimizationTags.includes(t.toLowerCase()))) {
+  // 3. Optimization alignment (20 points)
+  const optimizationTags = [
+    "quantized", "pruned", "int8", "int4", "fp16", "distilled", "compressed", 
+    "onnx", "tflite", "tensorrt", "edge", "mobile"
+  ];
+  const hasOptimization = c.tags?.some(t => optimizationTags.includes(t.toLowerCase()));
+  if (hasOptimization) {
     score += 20;
   }
 
