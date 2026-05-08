@@ -3,6 +3,8 @@
 > **Describe your AI project idea → Get scored, ranked candidates from HuggingFace, GitHub & ArXiv**
 > Built for **Samsung PRISM Hackathon** | Theme: GenAI Research & Productivity
 
+> 🎥 **Video Demonstration / Presentation:** [Watch on Google Drive](https://drive.google.com/file/d/1SaUTiYwkn-i5w_b7_KfEMVtZvVE8VhXK/view?usp=sharing)
+
 ---
 
 ## 📋 Table of Contents
