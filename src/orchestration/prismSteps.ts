@@ -13,7 +13,7 @@ import { enrichmentStore } from "./enrichmentStore";
  */
 export function registerPrismSteps() {
   OpenClaw.register("parse_input", async (state) => {
-    const parsedInput = parseInput(state.rawInput);
+    const parsedInput = await parseInput(state.rawInput);
     const requestId = Math.random().toString(36).substring(7);
     console.log(`[OpenClaw] Step: parse_input -> Task: ${parsedInput.task}, ID: ${requestId}`);
     enrichmentStore.create(requestId);

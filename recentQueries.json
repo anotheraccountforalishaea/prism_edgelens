@@ -1,5 +1,33 @@
 [
   {
+    "timestamp": "2026-05-08T04:53:48.104Z",
+    "input": "Find me some cloud-based text classification models, memory doesn't matter",
+    "task": "text-classification",
+    "candidateCount": 133,
+    "topResult": "distilbert/distilbert-base-uncased-finetuned-sst-2-english"
+  },
+  {
+    "timestamp": "2026-05-08T04:43:05.219Z",
+    "input": "I want to build an app for an android phone. It needs to look at photos and tell me what is in them. It has to be open source and free, and work completely offline without AWS.\"",
+    "task": "image-classification",
+    "candidateCount": 124,
+    "topResult": "Organika/sdxl-detector"
+  },
+  {
+    "timestamp": "2026-05-08T04:16:14.831Z",
+    "input": "Find me speech recognition for an arduino microcontroller. I only have 32MB of memory and need sub-50ms latency.",
+    "task": "automatic-speech-recognition",
+    "candidateCount": 129,
+    "topResult": "ai4bharat/indic-conformer-600m-multilingual"
+  },
+  {
+    "timestamp": "2026-05-08T04:03:51.414Z",
+    "input": "Find me a text classification model for a cloud server. It needs to be commercial use approved, run in python, and handle sensitive HIPAA data with at least 95% accuracy.",
+    "task": "text-classification",
+    "candidateCount": 133,
+    "topResult": "distilbert/distilbert-base-uncased-finetuned-sst-2-english"
+  },
+  {
     "timestamp": "2026-05-07T16:13:51.241Z",
     "input": "I am building an autonomous edge AI agriculture monitoring system for drones and IoT cameras.\n\nThe system should:\n- detect crop diseases in real time\n- perform offline inference in rural environments\n- support deployment on NVIDIA Jetson Nano and Coral TPU\n- operate below 1.5GB memory usage\n- maintain inference below 100ms latency\n- prioritize quantized CNN and Vision Transformer models\n\nI need:\n- edge-compatible crop disease detection models\n- lightweight segmentation models\n- repositories with active embedded deployment support\n- recent TinyML and agricultural AI research\n\nPrioritize:\n- ARM and TPU optimization\n- TensorRT and ONNX compatibility\n- high community adoption\n- rising edge AI research trends",
     "task": "image-segmentation",

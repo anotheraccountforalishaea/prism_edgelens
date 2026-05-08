@@ -101,7 +101,7 @@ function App() {
               color: "#ffffff",
               letterSpacing: "-0.04em"
             }}>
-              PRISM <span style={{ color: "#3b82f6" }}>Intelligence</span>
+              EDGE_LENS <span style={{ color: "#3b82f6" }}>Intelligence</span>
             </h1>
             <p style={{ color: "#94a3b8", fontSize: "1.125rem", maxWidth: "650px", margin: "0 auto", lineHeight: "1.6" }}>
               Precision Retrieval and Intelligent Scoring Matrix. Analyze hardware-aligned AI candidates for autonomous coding workflows.
@@ -138,7 +138,7 @@ function App() {
             zIndex: 10
           }}>
             <h2 style={{ fontSize: "1.25rem", fontWeight: "700", color: "#ffffff" }}>
-              PRISM <span style={{ fontWeight: "400", color: "#94a3b8" }}>Analytics</span>
+              EDGE_LENS <span style={{ fontWeight: "400", color: "#94a3b8" }}>Analytics</span>
             </h2>
             <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
               <button 

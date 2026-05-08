@@ -1,110 +1,100 @@
 import { ParsedInput } from "../schemas/types";
 
-/**
- * Intelligent Input Parser for PRISM
- * Uses a multi-layered extraction approach to understand technical intent
- * without relying on brittle regex alone.
- */
-export function parseInput(text: string): ParsedInput {
-  const lower = text.toLowerCase();
+export async function parseInput(rawText: string): Promise<ParsedInput> {
+  const systemPrompt = `
+You are a structured data extractor for an AI project evaluator.
+Read the user's project description and extract all constraints into a strict JSON object.
+Return ONLY raw JSON. Do not include markdown fences.
 
-  // 1. Task Extraction - Hierarchy based on precision
-  const taskMap: Record<string, string[]> = {
-    "image-classification": ["image class", "classify image", "vision classification", "disease detection", "agriculture monitoring"],
-    "object-detection": ["object detect", "detect object", "yolo", "ssd", "drone detection"],
-    "image-segmentation": ["segmentation", "pixel-wise", "crop monitoring"],
-    "text-classification": ["sentiment", "text classif", "intent detection"],
-    "automatic-speech-recognition": ["speech", "voice", "audio", "asr", "stt"],
-    "translation": ["translation", "translate"],
-    "summarization": ["summariz"],
-    "question-answering": ["question answer", "qa", "mrc"],
-    "depth-estimation": ["depth estimat"],
-    "video-processing": ["video", "iot camera"],
-    "text-generation": ["text generation", "nlp", "llm", "chat", "autocomplete", "coding assistant"],
-    "artificial-intelligence": ["ai", "machine learning", "deep learning"]
-  };
+Return this exact structure:
+{
+  "task": "image-classification" | "object-detection" | "image-segmentation" | "text-classification" | "automatic-speech-recognition" | "translation" | "summarization" | "question-answering" | "depth-estimation" | "video-processing" | "nlp" | "unknown",
+  "device": "raspberry-pi" | "mobile" | "jetson-nano" | "microcontroller" | "browser" | "cpu-only",
+  "memoryMB": number,
+  "latencyMs": number,
+  "offline": boolean,
+  "deployEnv": string[],
+  "privacyRequired": boolean,
+  "framework": string[],
+  "dataType": string[],
+  "license": "open-source" | "commercial" | "research-only" | "any",
+  "budgetConstrained": boolean,
+  "fpsRequired": number,
+  "accuracyMin": number,
+  "languagePreference": string
+}
 
-  let task = "unknown";
-  for (const [key, patterns] of Object.entries(taskMap)) {
-    if (patterns.some(p => lower.includes(p))) {
-      task = key;
-      break;
+Defaults if not mentioned:
+- memoryMB: 512
+- latencyMs: 200
+- offline: false
+- privacyRequired: false
+- budgetConstrained: false
+
+If an optional field (like deployEnv, framework, license, fpsRequired, accuracyMin) is not mentioned, omit the key or return null.
+`;
+
+  try {
+    const response = await fetch("http://localhost:11434/api/generate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "llama3",
+        prompt: `${systemPrompt}\n\nUser Input: "${rawText}"\n\nReturn ONLY the JSON.`,
+        stream: false,
+        format: "json" // Forces Ollama to output valid JSON
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Ollama API error: ${response.statusText}`);
     }
-  }
 
-  // 2. Keyword Fallback for Discovery
-  // If no canonical task is found, we extract the core technical entities
-  if (task === "unknown") {
-    const technicalKeywords = [
-        "llm", "agent", "autonomous", "orchestration", "quantized", "copilot", 
-        "rag", "retrieval", "coding", "typescript", "node", "python", "macos", 
-        "linux", "vps", "server", "mac mini", "apple silicon", "gpu", 
-        "quantization", "memory", "optimization", "agriculture", "crop", "drone", "tinyml"
-    ];
+    const data = await response.json();
+    const parsed = JSON.parse(data.response) as ParsedInput;
+
+    // Preserve the original raw text
+    parsed.rawText = rawText;
+
+    // Enforce fallbacks for critical numerical checks just in case Ollama hallucinated
+    parsed.memoryMB = parsed.memoryMB ?? 512;
+    parsed.latencyMs = parsed.latencyMs ?? 200;
+    parsed.offline = parsed.offline ?? false;
     
-    const words = technicalKeywords.filter(kw => lower.includes(kw));
-    if (words.length > 0) {
-      task = Array.from(new Set(words)).slice(0, 3).join(" ");
-    } else {
-      // Last resort: significant words that aren't stop words
-      task = text.split(/\s+/).filter(w => w.length > 4).slice(0, 3).join(" ");
-    }
+    // To satisfy exactOptionalPropertyTypes, we must convert null to undefined
+    if (parsed.deployEnv === null) parsed.deployEnv = undefined;
+    if (parsed.framework === null) parsed.framework = undefined;
+    if (parsed.dataType === null) parsed.dataType = undefined;
+    if (parsed.license === null) parsed.license = undefined;
+    if (parsed.fpsRequired === null) parsed.fpsRequired = undefined;
+    if (parsed.accuracyMin === null) parsed.accuracyMin = undefined;
+    if (parsed.languagePreference === null) parsed.languagePreference = undefined;
+
+    return parsed;
+  } catch (error) {
+    console.error("Ollama parser failed, using regex fallback:", error);
+    
+    // Fallback if Ollama is down
+    return {
+      task: extractTaskFallback(rawText),
+      device: "cpu-only",
+      rawText: rawText,
+      memoryMB: 512,
+      latencyMs: 200,
+      offline: false
+    };
   }
+}
 
-  // 3. Hardware Constraints Parsing
-  let device = "cpu-only";
-  if (lower.match(/raspberry|rpi/)) device = "raspberry-pi";
-  else if (lower.match(/mobile|android|ios|phone/)) device = "mobile";
-  else if (lower.includes("jetson")) device = "jetson-nano";
-  else if (lower.includes("coral") || lower.includes("tpu")) device = "coral-tpu";
-  else if (lower.match(/arduino|microcontroller/)) device = "microcontroller";
-  else if (lower.match(/browser|web/)) device = "browser";
-  else if (lower.match(/apple silicon|m1|m2|m3|mac mini/)) device = "apple-silicon";
-
-  let memoryMB = 1024; // Default to 1GB
-  const memMatch = lower.match(/(\d+(?:\.\d+)?)\s*(mb|gb)/);
-  if (memMatch && memMatch[1]) {
-    const val = parseFloat(memMatch[1]);
-    memoryMB = memMatch[2] === "gb" ? Math.round(val * 1024) : Math.round(val);
-  }
-
-  let latencyMs = 500;
-  const latMatch = lower.match(/<?\s*(\d+)\s*ms/);
-  if (latMatch && latMatch[1]) latencyMs = parseInt(latMatch[1], 10);
-  else if (lower.includes("real-time")) latencyMs = 100;
-
-  // 4. Operational Requirements
-  const offline = !!lower.match(/offline|no internet|local only|self-hosted|rural/);
-  const privacyRequired = !!lower.match(/private|on-device|no cloud|sensitive|hipaa|gdpr/);
-  const budgetConstrained = !!lower.match(/free|no cost|open source only|no budget/);
-
-  // 5. Technical Context Extraction
-  const frameworkList = ["python", "javascript", "typescript", "swift", "kotlin", "rust", "onnx", "tflite", "pytorch", "tensorflow", "coreml", "flutter", "tensorrt"];
-  const framework = frameworkList.filter(f => lower.includes(f));
-
-  const dataType: string[] = [];
-  if (lower.match(/image|photo|camera|vision/)) dataType.push("images");
-  if (lower.match(/text|document|nlp/)) dataType.push("text");
-  if (lower.match(/audio|speech|voice/)) dataType.push("audio");
-  if (lower.match(/video|stream|frames/)) dataType.push("video");
-
-  let license: "open-source" | "commercial" | "research-only" | "any" | undefined = undefined;
-  if (lower.match(/open source|apache|mit|gpl/)) license = "open-source";
-  else if (lower.match(/commercial|production/)) license = "commercial";
-  else if (lower.match(/research|academic/)) license = "research-only";
-
-  return {
-    task,
-    device,
-    rawText: text,
-    memoryMB,
-    latencyMs,
-    offline,
-    deployEnv: lower.includes("vps") || lower.includes("server") ? ["cloud"] : undefined,
-    privacyRequired,
-    framework: framework.length ? framework : undefined,
-    dataType: dataType.length ? dataType : undefined,
-    license,
-    budgetConstrained
-  };
+// Minimal regex fallback if Ollama is unreachable
+function extractTaskFallback(rawText: string): string {
+  const text = rawText.toLowerCase();
+  if (text.includes("image classif") || text.includes("classify image")) return "image-classification";
+  if (text.includes("object detect") || text.includes("detect object")) return "object-detection";
+  if (text.includes("speech") || text.includes("voice")) return "automatic-speech-recognition";
+  if (text.includes("sentiment") || text.includes("text classif")) return "text-classification";
+  if (text.includes("translat")) return "translation";
+  if (text.includes("summariz")) return "summarization";
+  if (text.includes("segment")) return "image-segmentation";
+  return "unknown";
 }
